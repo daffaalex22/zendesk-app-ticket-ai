@@ -2,30 +2,61 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <!--   See Using Zendesk Garden:
-    https://developer.zendesk.com/apps/docs/developer-guide/setup#using-zendesk-garden
-    https://garden.zendesk.com/css-components/bedrock/
-    https://garden.zendesk.com/css-components/utilities/typography/
-   -->
-  <title>Basic Zendesk App</title>
+  <title>Enhanced Zendesk Support App</title>
+  <!-- Add Zendesk Garden for styling -->
+  <link rel="stylesheet" href="https://unpkg.com/@zendesk/garden-css/dist/index.css">
 </head>
-<body>
+<body style="padding: 20px;">
   <h2 class="u-semibold u-fs-xl">Hello, <span id="name">World</span>!</h2>
+  
+  <!-- Additional Support App Features -->
+  <div id="ticket-info" class="c-txt u-mt-sm" style="display: none;">
+    <p>Ticket: <span id="ticket-id"></span></p>
+    <p>Status: <span id="ticket-status"></span></p>
+  </div>
+
+  <div id="user-info" class="c-txt u-mt-sm" style="display: none;">
+    <p>User Email: <span id="user-email"></span></p>
+    <p>Organization: <span id="user-org"></span></p>
+  </div>
+
   <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
   <script>
-    // Initialise Apps framework client. See also:
-    // https://developer.zendesk.com/apps/docs/developer-guide/getting_started
     var client = ZAFClient.init();
-    client.invoke('resize', { width: '100%', height: '200px' });
+    client.invoke('resize', { width: '100%', height: '300px' });
 
-  async function displayUserName() {
-    const response = await client.get("currentUser.name");
-    const name = response["currentUser.name"];
-    const span = document.getElementById("name");
-    span.innerText = name;
-  }
+    async function initializeApp() {
+      try {
+        // Get multiple data points at once
+        const response = await client.get([
+          'currentUser.name',
+          'currentUser.email',
+          'ticket.id',
+          'ticket.status',
+          'currentUser.organization'
+        ]);
 
-  displayUserName();
+        // Display user info
+        document.getElementById('name').textContent = response['currentUser.name'];
+        document.getElementById('user-email').textContent = response['currentUser.email'] || 'N/A';
+        document.getElementById('user-org').textContent = response['currentUser.organization']?.name || 'N/A';
+        document.getElementById('user-info').style.display = 'block';
+
+        // Display ticket info (if in ticket context)
+        if (response['ticket.id']) {
+          document.getElementById('ticket-id').textContent = response['ticket.id'];
+          document.getElementById('ticket-status').textContent = response['ticket.status'];
+          document.getElementById('ticket-info').style.display = 'block';
+          client.invoke('resize', { width: '100%', height: '400px' });
+        }
+
+      } catch (error) {
+        console.error('Error loading app data:', error);
+        document.getElementById('name').textContent = 'Error loading data';
+      }
+    }
+
+    initializeApp();
   </script>
 </body>
 </html>
