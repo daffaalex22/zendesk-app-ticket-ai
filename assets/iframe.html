@@ -5,58 +5,116 @@
   <title>Ticket AI Assistant</title>
   <!-- Add Zendesk Garden for styling -->
   <link rel="stylesheet" href="https://unpkg.com/@zendesk/garden-css/dist/index.css">
+  <style>
+    /* Chat-specific styles */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-height: 100%;
+    }
+    
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 10px;
+    }
+    
+    .message {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      border-radius: 18px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+    
+    .user-message {
+      background-color: #007bff;
+      color: white;
+      margin-left: auto;
+    }
+    
+    .bot-message {
+      background-color: #f1f1f1;
+      color: #333;
+      margin-right: auto;
+    }
+    
+    .input-container {
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    
+    #message-input {
+      flex: 1;
+    }
+    
+    #send-button {
+      white-space: nowrap;
+    }
+  </style>
 </head>
-<body style="padding: 20px;">
-  <h2 class="u-semibold u-fs-xl">Hello, <span id="name">World</span>!</h2>
+<body style="height: 100%;">
   
-  <!-- Additional Support App Features -->
-  <div id="ticket-info" class="c-txt u-mt-sm" style="display: none;">
-    <p>Ticket: <span id="ticket-id"></span></p>
-    <p>Status: <span id="ticket-status"></span></p>
-  </div>
-
-  <div id="user-info" class="c-txt u-mt-sm" style="display: none;">
-    <p>User Email: <span id="user-email"></span></p>
-    <p>Organization: <span id="user-org"></span></p>
+  <div class="chat-container">
+    <div id="chat-messages" class="chat-messages">
+      <div class="message bot-message">Hello! How can I help you today?</div>
+    </div>
+    
+    <div class="input-container">
+      <input type="text" id="message-input" class="c-txt__input" placeholder="Type your message...">
+      <button id="send-button" class="c-btn c-btn--primary">Send</button>
+    </div>
   </div>
 
   <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
   <script>
     var client = ZAFClient.init();
-    client.invoke('resize', { width: '100%', height: '300px' });
+    client.invoke('resize', { width: '100%', height: '400px' });
 
-    async function initializeApp() {
-      try {
-        // Get multiple data points at once
-        const response = await client.get([
-          'currentUser.name',
-          'currentUser.email',
-          'ticket.id',
-          'ticket.status',
-          'currentUser.organization'
-        ]);
+    // DOM elements
+    const chatMessages = document.getElementById('chat-messages');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
 
-        // Display user info
-        document.getElementById('name').textContent = response['currentUser.name'];
-        document.getElementById('user-email').textContent = response['currentUser.email'] || 'N/A';
-        document.getElementById('user-org').textContent = response['currentUser.organization']?.name || 'N/A';
-        document.getElementById('user-info').style.display = 'block';
+    // Function to add a message to the chat
+    function addMessage(text, isUser = false) {
+      const messageDiv = document.createElement('div');
+      messageDiv.classList.add('message');
+      messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
+      messageDiv.textContent = text;
+      chatMessages.appendChild(messageDiv);
+      
+      // Scroll to bottom
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 
-        // Display ticket info (if in ticket context)
-        if (response['ticket.id']) {
-          document.getElementById('ticket-id').textContent = response['ticket.id'];
-          document.getElementById('ticket-status').textContent = response['ticket.status'];
-          document.getElementById('ticket-info').style.display = 'block';
-          client.invoke('resize', { width: '100%', height: '400px' });
-        }
-
-      } catch (error) {
-        console.error('Error loading app data:', error);
-        document.getElementById('name').textContent = 'Error loading data';
+    // Function to send a message
+    function sendMessage() {
+      const message = messageInput.value.trim();
+      if (message) {
+        // Add user message
+        addMessage(message, true);
+        messageInput.value = '';
+        
+        // Simulate bot response after a short delay
+        setTimeout(() => {
+          addMessage("Thanks for your message! This is a simulated response.");
+        }, 1000);
       }
     }
 
-    initializeApp();
+    // Event listeners
+    sendButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    // Initialize with welcome message
+    addMessage("Welcome to the AI Chat Assistant! Ask me anything.");
   </script>
 </body>
 </html>
