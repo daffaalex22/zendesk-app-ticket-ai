@@ -14,8 +14,6 @@ function addMessage(text, isUser = false) {
   messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
   messageDiv.textContent = text;
   chatMessages.appendChild(messageDiv);
-  
-  // Let Zendesk handle scrolling instead of manual scrolling
 }
 
 // Function to send a message
