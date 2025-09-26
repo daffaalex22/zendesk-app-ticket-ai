@@ -1,7 +1,8 @@
 /* Add Zendesk Garden for styling */
-@import url('https://cdn.jsdelivr.net/npm/@zendeskgarden/css-bedrock@10.0.1/src/index.min.css');
-@import url('https://cdn.jsdelivr.net/npm/@zendeskgarden/css-buttons@10.0.1/src/index.min.css');
-@import url('https://cdn.jsdelivr.net/npm/@zendeskgarden/css-forms@10.0.1/src/index.min.css');
+@import url("https://cdn.jsdelivr.net/npm/@zendeskgarden/css-bedrock@10.0.1/src/index.min.css");
+@import url("https://cdn.jsdelivr.net/npm/@zendeskgarden/css-buttons@9.0.1/src/index.min.css");
+/* @import url('https://cdn.jsdelivr.net/npm/@zendeskgarden/css-forms@10.0.1/src/index.min.css'); */
+/* @import url('https://cdn.jsdelivr.net/npm/@zendeskgarden/css-forms@8.0.1/src/index.min.css') */
 
 /* Chat-specific styles */
 .chat-container {
