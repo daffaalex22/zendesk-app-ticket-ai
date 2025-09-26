@@ -3,57 +3,8 @@
 <head>
   <meta charset="utf-8">
   <title>Ticket AI Assistant</title>
-  <!-- Add Zendesk Garden for styling -->
-  <link rel="stylesheet" href="https://unpkg.com/@zendesk/garden-css/dist/index.css">
-  <style>
-    /* Chat-specific styles */
-    .chat-container {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      max-height: 100%;
-    }
-    
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      margin-bottom: 10px;
-    }
-    
-    .message {
-      margin-bottom: 10px;
-      padding: 8px 12px;
-      border-radius: 18px;
-      max-width: 80%;
-      word-wrap: break-word;
-    }
-    
-    .user-message {
-      background-color: #007bff;
-      color: white;
-      margin-left: auto;
-    }
-    
-    .bot-message {
-      background-color: #f1f1f1;
-      color: #333;
-      margin-right: auto;
-    }
-    
-    .input-container {
-      display: flex;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-    
-    #message-input {
-      flex: 1;
-    }
-    
-    #send-button {
-      white-space: nowrap;
-    }
-  </style>
+  <!-- Link to external CSS -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body style="height: 100%;">
   
@@ -69,52 +20,7 @@
   </div>
 
   <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
-  <script>
-    var client = ZAFClient.init();
-    client.invoke('resize', { width: '100%', height: '400px' });
-
-    // DOM elements
-    const chatMessages = document.getElementById('chat-messages');
-    const messageInput = document.getElementById('message-input');
-    const sendButton = document.getElementById('send-button');
-
-    // Function to add a message to the chat
-    function addMessage(text, isUser = false) {
-      const messageDiv = document.createElement('div');
-      messageDiv.classList.add('message');
-      messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
-      messageDiv.textContent = text;
-      chatMessages.appendChild(messageDiv);
-      
-      // Scroll to bottom
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
-    // Function to send a message
-    function sendMessage() {
-      const message = messageInput.value.trim();
-      if (message) {
-        // Add user message
-        addMessage(message, true);
-        messageInput.value = '';
-        
-        // Simulate bot response after a short delay
-        setTimeout(() => {
-          addMessage("Thanks for your message! This is a simulated response.");
-        }, 1000);
-      }
-    }
-
-    // Event listeners
-    sendButton.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        sendMessage();
-      }
-    });
-
-    // Initialize with welcome message
-    addMessage("Welcome to the AI Chat Assistant! Ask me anything.");
-  </script>
+  <!-- Link to external JavaScript -->
+  <script src="script.js"></script>
 </body>
 </html>
