@@ -14,7 +14,10 @@ function addMessage(text, isUser = false) {
   const messageDiv = document.createElement('div');
   messageDiv.classList.add('message');
   messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
-  messageDiv.textContent = text;
+
+  // Convert newlines to <br> tags
+  messageDiv.innerHTML = text.replace(/\n/g, '<br> <br>');
+
   chatMessages.appendChild(messageDiv);
 
   // Add animation
