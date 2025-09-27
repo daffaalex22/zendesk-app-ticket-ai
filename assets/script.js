@@ -76,6 +76,14 @@ function sendMessage() {
         });
       });
       return;
+    } else if (message.startsWith('/autoreply')) {
+      client.get('ticket.id').then(function (data) {
+        var ticketId = data['ticket.id'];
+        handleAutoreplyRequest({
+          ticketId: ticketId,
+        });
+      });
+      return;
     }
 
     // Show loading indicator
@@ -94,7 +102,7 @@ async function handleSummaryRequest(ticketData) {
   const loadingIndicator = showLoadingIndicator();
 
   try {
-    const response = await sendToN8nWebhook(ticketData);
+    const response = await sendToN8nWebhook(SUMMARY_WEBHOOK_URL, ticketData);
     const summary = processSummaryResponse(response);
 
     hideLoadingIndicator();
@@ -103,6 +111,29 @@ async function handleSummaryRequest(ticketData) {
     hideLoadingIndicator();
     addMessage("Sorry, I couldn't generate a summary at the moment.");
     console.error('Summary error:', error);
+  }
+}
+
+// New function to handle autoreply requests via n8n
+async function handleAutoreplyRequest(ticketData) {
+  const loadingIndicator = showLoadingIndicator();
+
+  try {
+    const autoreplyText = "Thank you for contacting us. We've received your ticket and will get back to you shortly.";
+    const response = await sendToN8nWebhook(AUTOREPLY_WEBHOOK_URL, ticketData);
+    const autoreply = processSummaryResponse(response) || autoreplyText;
+
+    hideLoadingIndicator();
+    client.invoke('ticket.comment.appendText', autoreply?.output).then(function () {
+      addMessage("Autoreply has been added to the ticket comment.");
+    }).catch(function (error) {
+      addMessage("Failed to add autoreply to ticket comment.");
+      console.error('Error setting comment:', error);
+    });
+  } catch (error) {
+    hideLoadingIndicator();
+    addMessage("Sorry, I couldn't generate an autoreply at the moment.");
+    console.error('Autoreply error:', error);
   }
 }
 
@@ -120,29 +151,16 @@ function handleSummaryClick() {
   });
 }
 
-// Add function to handle autoreply
+// Function to handle autoreply button click
 function handleAutoreplyClick() {
-  const loadingIndicator = showLoadingIndicator();
+  // Add the /autoreply message as if the user typed it
+  addMessage('/autoreply', true);
 
   client.get('ticket.id').then(function (data) {
     var ticketId = data['ticket.id'];
-
-    // Here you would typically call your n8n webhook to generate an autoreply
-    // For now, let's use a placeholder response
-    setTimeout(() => {
-      hideLoadingIndicator();
-
-      // Sample autoreply text
-      const autoreplyText = "Thank you for contacting us. We've received your ticket and will get back to you shortly.";
-
-      // Set the comment text in the Zendesk ticket editor
-      client.invoke('ticket.comment.appendText', autoreplyText).then(function () {
-        addMessage("Autoreply has been added to the ticket comment.");
-      }).catch(function (error) {
-        addMessage("Failed to add autoreply to ticket comment.");
-        console.error('Error setting comment:', error);
-      });
-    }, 1000);
+    handleAutoreplyRequest({
+      ticketId: ticketId,
+    });
   });
 }
 

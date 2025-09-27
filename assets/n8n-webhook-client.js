@@ -1,7 +1,7 @@
 // n8n-webhook-client.js
 
 const SUMMARY_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/simple-summary";
-// const AUTOREPLY_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/auto-reply";
+const AUTOREPLY_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/ticket-autoreply";
 // DOCS_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/docs";
 
 /**
@@ -10,9 +10,7 @@ const SUMMARY_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/simpl
  * @param {string} webhookUrl - The n8n webhook URL
  * @returns {Promise<Object>} The response from the webhook
  */
-async function sendToN8nWebhook(ticketData) {
-  const webhookUrl = SUMMARY_WEBHOOK_URL;
-
+async function sendToN8nWebhook(webhookUrl, ticketData) {
   try {
     const response = await fetch(webhookUrl, {
       method: 'POST',
@@ -66,7 +64,7 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     sendToN8nWebhook,
     processSummaryResponse,
-    testWebhookUrl,
-    prodWebhookUrl
+    SUMMARY_WEBHOOK_URL,
+    AUTOREPLY_WEBHOOK_URL,
   };
 }
