@@ -65,6 +65,17 @@ function sendMessage() {
     addMessage(message, true);
     messageInput.value = '';
     
+    // Check for special commands
+    if (message.startsWith('/summary')) {
+      client.get('ticket.id').then(function (data) {
+        var ticketId = data['ticket.id'];
+        handleSummaryRequest({
+          ticketId: ticketId,
+        });
+      });
+      return;
+    }
+
     // Show loading indicator
     const loadingIndicator = showLoadingIndicator();
 
@@ -73,6 +84,23 @@ function sendMessage() {
       hideLoadingIndicator();
       addMessage("Thanks for your message! This is a simulated response.");
     }, 500);
+  }
+}
+
+// New function to handle summary requests via n8n
+async function handleSummaryRequest(ticketData) {
+  const loadingIndicator = showLoadingIndicator();
+
+  try {
+    const response = await sendToN8nWebhook(ticketData);
+    const summary = processSummaryResponse(response);
+
+    hideLoadingIndicator();
+    addMessage(summary?.output);
+  } catch (error) {
+    hideLoadingIndicator();
+    addMessage("Sorry, I couldn't generate a summary at the moment.");
+    console.error('Summary error:', error);
   }
 }
 
