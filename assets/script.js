@@ -11,12 +11,20 @@ const autoreplyButton = document.getElementById('autoreply-button');
 
 // Function to add a message to the chat
 function addMessage(text, isUser = false) {
+  // Add temporary notice before the first message
+  if (chatMessages.children.length === 1) { // Only the initial bot message exists
+    const noticeDiv = document.createElement('div');
+    noticeDiv.classList.add('message', 'notice-message');
+    noticeDiv.textContent = 'Note: This conversation is temporary and will be lost when you leave.';
+    chatMessages.insertBefore(noticeDiv, chatMessages.firstChild.nextSibling); // Insert after initial message
+  }
+
   const messageDiv = document.createElement('div');
   messageDiv.classList.add('message');
   messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
 
   // Convert newlines to <br> tags
-  messageDiv.innerHTML = text.replace(/\n/g, '<br> <br>');
+  messageDiv.innerHTML = text.replace(/\n/g, '<br>');
 
   chatMessages.appendChild(messageDiv);
 
