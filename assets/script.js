@@ -86,14 +86,17 @@ function sendMessage() {
       return;
     }
 
-    // Show loading indicator
-    const loadingIndicator = showLoadingIndicator();
+    // Delay showing the loading indicator by 500ms
+    const loadingTimeout = setTimeout(() => {
+      showLoadingIndicator();
+    }, 500);
 
     // Simulate bot response after a short delay
     setTimeout(() => {
+      clearTimeout(loadingTimeout); // Clear timeout if response is fast
       hideLoadingIndicator();
       addMessage("Thanks for your message! This is a simulated response.");
-    }, 500);
+    }, 1500);
   }
 }
 
