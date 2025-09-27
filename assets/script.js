@@ -7,6 +7,7 @@ const chatMessages = document.getElementById('chat-messages');
 const messageInput = document.getElementById('message-input');
 const sendButton = document.getElementById('send-button');
 const summaryButton = document.getElementById('summary-button');
+const autoreplyButton = document.getElementById('autoreply-button');
 
 // Function to add a message to the chat
 function addMessage(text, isUser = false) {
@@ -119,7 +120,34 @@ function handleSummaryClick() {
   });
 }
 
+// Add function to handle autoreply
+function handleAutoreplyClick() {
+  const loadingIndicator = showLoadingIndicator();
+
+  client.get('ticket.id').then(function (data) {
+    var ticketId = data['ticket.id'];
+
+    // Here you would typically call your n8n webhook to generate an autoreply
+    // For now, let's use a placeholder response
+    setTimeout(() => {
+      hideLoadingIndicator();
+
+      // Sample autoreply text
+      const autoreplyText = "Thank you for contacting us. We've received your ticket and will get back to you shortly.";
+
+      // Set the comment text in the Zendesk ticket editor
+      client.invoke('ticket.comment.appendText', autoreplyText).then(function () {
+        addMessage("Autoreply has been added to the ticket comment.");
+      }).catch(function (error) {
+        addMessage("Failed to add autoreply to ticket comment.");
+        console.error('Error setting comment:', error);
+      });
+    }, 1000);
+  });
+}
+
 // Event listeners
+autoreplyButton.addEventListener('click', handleAutoreplyClick);
 sendButton.addEventListener('click', sendMessage);
 summaryButton.addEventListener('click', handleSummaryClick);
 messageInput.addEventListener('keypress', (e) => {
