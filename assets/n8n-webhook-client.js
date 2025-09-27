@@ -1,7 +1,8 @@
 // n8n-webhook-client.js
 
-const testWebhookUrl = 'https://n8n-service-2vj1.onrender.com/webhook-test/simple-summary';
-const prodWebhookUrl = "https://n8n-service-2vj1.onrender.com/webhook/simple-summary";
+const SUMMARY_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/simple-summary";
+// const AUTOREPLY_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/auto-reply";
+// DOCS_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/docs";
 
 /**
  * Sends a message to the n8n webhook for summarization
@@ -10,7 +11,7 @@ const prodWebhookUrl = "https://n8n-service-2vj1.onrender.com/webhook/simple-sum
  * @returns {Promise<Object>} The response from the webhook
  */
 async function sendToN8nWebhook(ticketData) {
-  const webhookUrl = prodWebhookUrl;
+  const webhookUrl = SUMMARY_WEBHOOK_URL;
 
   try {
     const response = await fetch(webhookUrl, {

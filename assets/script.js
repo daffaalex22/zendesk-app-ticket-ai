@@ -6,6 +6,7 @@ client.invoke('resize', { width: '100%', height: '475px' });
 const chatMessages = document.getElementById('chat-messages');
 const messageInput = document.getElementById('message-input');
 const sendButton = document.getElementById('send-button');
+const summaryButton = document.getElementById('summary-button');
 
 // Function to add a message to the chat
 function addMessage(text, isUser = false) {
@@ -104,8 +105,23 @@ async function handleSummaryRequest(ticketData) {
   }
 }
 
+// Function to handle summary button click
+function handleSummaryClick() {
+  // Add the /summary message as if the user typed it
+  addMessage('/summary', true);
+
+  // Trigger the summary functionality
+  client.get('ticket.id').then(function (data) {
+    var ticketId = data['ticket.id'];
+    handleSummaryRequest({
+      ticketId: ticketId,
+    });
+  });
+}
+
 // Event listeners
 sendButton.addEventListener('click', sendMessage);
+summaryButton.addEventListener('click', handleSummaryClick);
 messageInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') {
     sendMessage();
