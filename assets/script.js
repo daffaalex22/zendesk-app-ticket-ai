@@ -23,8 +23,8 @@ function addMessage(text, isUser = false) {
   messageDiv.classList.add('message');
   messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
 
-  // Convert newlines to <br> tags
-  messageDiv.innerHTML = text.replace(/\n/g, '<br>');
+  // Convert newlines to 2 <br> tags
+  messageDiv.innerHTML = text.replace(/\n/g, '<br> <br>');
 
   chatMessages.appendChild(messageDiv);
 
@@ -90,6 +90,9 @@ function sendMessage() {
     addMessage(message, true);
     messageInput.value = '';
     
+    // Reset textarea height
+    messageInput.style.height = 'auto';
+
     // Check for special commands
     if (message.startsWith('/summary')) {
       client.get('ticket.id').then(function (data) {
@@ -190,6 +193,12 @@ function handleAutoreplyClick() {
   });
 }
 
+// Function to automatically resize textarea based on content
+function autoResizeTextarea() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 150) + 'px'; // Max height of 150px
+}
+
 // Event listeners
 autoreplyButton.addEventListener('click', handleAutoreplyClick);
 sendButton.addEventListener('click', sendMessage);
@@ -199,6 +208,7 @@ messageInput.addEventListener('keypress', (e) => {
     sendMessage();
   }
 });
+messageInput.addEventListener('input', autoResizeTextarea); // Add auto-resize on input
 
 // Initialize with welcome message
 addMessage("Welcome to the AI Chat Assistant! Ask me anything.");
