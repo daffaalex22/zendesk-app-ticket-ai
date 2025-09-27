@@ -38,6 +38,12 @@ function addMessage(text, isUser = false) {
     messageDiv.style.opacity = '1';
     messageDiv.style.transform = 'translateY(0)';
   }, 10);
+
+  // Scroll to the bottom of the chat container with smooth behavior
+  chatMessages.scrollTo({
+    top: chatMessages.scrollHeight,
+    behavior: 'smooth'
+  });
 }
 
 // Function to show a loading indicator
@@ -58,6 +64,12 @@ function showLoadingIndicator() {
     loadingDiv.style.opacity = '1';
     loadingDiv.style.transform = 'translateY(0)';
   }, 10);
+
+  // Scroll to the bottom of the chat container with smooth behavior
+  chatMessages.scrollTo({
+    top: chatMessages.scrollHeight,
+    behavior: 'smooth'
+  });
 
   return loadingDiv;
 }
