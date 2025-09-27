@@ -1,8 +1,8 @@
 {
   "app": {
-    "name": "Zen Tunes",
-    "short_description": "Play the famous zen tunes in your help desk.",
-    "long_description": "Play the famous zen tunes in your help desk and \n listen to the beats it has to offer.",
-    "installation_instructions": "Simply click install."
+    "name": "AI Chat Assistant",
+    "short_description": "An intelligent chat assistant for Zendesk ticket management.",
+    "long_description": "AI Chat Assistant helps agents quickly summarize tickets, \n generate auto-replies, and get intelligent responses to common queries.",
+    "installation_instructions": "Simply click install to add the AI Chat Assistant to your Zendesk interface."
   }
 }
