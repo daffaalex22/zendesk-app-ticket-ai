@@ -26,7 +26,7 @@
 }
 
 .user-message {
-  background-color: #007bff;
+  background-color: #2694d6;
   color: white;
   margin-left: auto;
   border-bottom-right-radius: 5px;
@@ -41,6 +41,7 @@
 
 /* Chat link styles - underline only on hover */
 .chat-link {
+  color: #1f73b7;
   text-decoration: none;
 }
 
