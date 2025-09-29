@@ -272,4 +272,4 @@ messageInput.addEventListener('keypress', (e) => {
 messageInput.addEventListener('input', autoResizeTextarea); // Add auto-resize on input
 
 // Initialize with welcome message
-addMessage("Welcome to the AI Chat Assistant! Ask me anything.");
+addMessage("Welcome to the Xendit Documentation Assistant! I can help answer questions about Xendit's services.");
