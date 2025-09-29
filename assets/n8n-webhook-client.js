@@ -2,7 +2,7 @@
 
 const SUMMARY_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/simple-summary";
 const AUTOREPLY_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/ticket-autoreply";
-// DOCS_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/docs";
+const DOCS_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/docs-chat";
 
 /**
  * Sends a message to the n8n webhook for summarization
@@ -48,17 +48,6 @@ function processSummaryResponse(responseData) {
   }
 }
 
-// Example usage:
-// const webhookUrl = 'https://your-n8n-instance.com/webhook/your-webhook-id';
-// sendToN8nWebhook('Your message here', webhookUrl)
-//   .then(response => {
-//     const summary = processSummaryResponse(response);
-//     console.log('Summary:', summary);
-//   })
-//   .catch(error => {
-//     console.error('Error:', error);
-//   });
-
 // Export functions for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -66,5 +55,6 @@ if (typeof module !== 'undefined' && module.exports) {
     processSummaryResponse,
     SUMMARY_WEBHOOK_URL,
     AUTOREPLY_WEBHOOK_URL,
+    DOCS_WEBHOOK_URL,
   };
 }

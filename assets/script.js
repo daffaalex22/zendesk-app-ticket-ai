@@ -110,6 +110,8 @@ function sendMessage() {
         });
       });
       return;
+    } else {
+      handleDocsRequest(message);
     }
 
     // Delay showing the loading indicator by 500ms
@@ -163,6 +165,23 @@ async function handleAutoreplyRequest(ticketData) {
     hideLoadingIndicator();
     addMessage("Sorry, I couldn't generate an autoreply at the moment.");
     console.error('Autoreply error:', error);
+  }
+}
+
+async function handleDocsRequest(message) {
+  const loadingIndicator = showLoadingIndicator();
+  try {
+    const response = await sendToN8nWebhook(DOCS_WEBHOOK_URL, { message: message });
+    const result = processSummaryResponse(response);
+
+    console.log("DOCS_RESULT", result);
+
+    hideLoadingIndicator();
+    addMessage(result);
+  } catch (error) {
+    hideLoadingIndicator();
+    addMessage("Sorry, I couldn't find any relevant documentation at the moment.");
+    console.error('Docs error:', error);
   }
 }
 
