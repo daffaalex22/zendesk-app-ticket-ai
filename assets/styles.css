@@ -39,6 +39,15 @@
   border-bottom-left-radius: 5px;
 }
 
+/* Chat link styles - underline only on hover */
+.chat-link {
+  text-decoration: none;
+}
+
+.chat-link:hover {
+  text-decoration: underline;
+}
+
 .input-container {
   display: flex;
   gap: 10px;

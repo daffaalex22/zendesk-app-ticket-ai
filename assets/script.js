@@ -23,8 +23,14 @@ function addMessage(text, isUser = false) {
   messageDiv.classList.add('message');
   messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
 
-  // Convert newlines to 2 <br> tags
-  messageDiv.innerHTML = text.replace(/\n/g, '<br> <br>');
+  // Convert markdown to HTML
+  if (!isUser) {
+    // For bot messages, convert markdown to HTML
+    messageDiv.innerHTML = convertMarkdownToHTML(text);
+  } else {
+    // For user messages, keep the simple newline conversion
+    messageDiv.innerHTML = text.replace(/\n/g, '<br> <br>');
+  }
 
   chatMessages.appendChild(messageDiv);
 
@@ -44,6 +50,41 @@ function addMessage(text, isUser = false) {
     top: chatMessages.scrollHeight,
     behavior: 'smooth'
   });
+}
+
+// Function to convert markdown to HTML
+function convertMarkdownToHTML(markdown) {
+  // Convert code blocks (```code```)
+  let html = markdown.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+
+  // Convert inline code (`code`)
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Convert headers (# Header) to bold text with two trailing line breaks
+  html = html.replace(/^### (.*$)/gim, '<strong>$1</strong><br><br>');
+  html = html.replace(/^## (.*$)/gim, '<strong>$1</strong><br><br>');
+  html = html.replace(/^# (.*$)/gim, '<strong>$1</strong><br><br>');
+
+  // Convert bold (**bold** or __bold__)
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+
+  // Convert italic (*italic* or _italic_)
+  html = html.replace(/(?<!\*)\*(?!\*)(.*?) (?<!\*)\*(?!\*)/g, '<em>$1</em>');
+  html = html.replace(/(?<!_)_(?!_)(.*?) (?<!_)_(?!_)/g, '<em>$1</em>');
+
+  // Convert unordered lists (* item)
+  html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+
+  // Convert links ([text](url))
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="chat-link">$1</a>');
+
+  // Convert newlines to <br> tags (but not after block elements)
+  html = html.replace(/\n/g, '<br>');
+  html = html.replace(/(<\/h[1-6]|<\/p|<\/li|<\/ul|<\/ol|<\/blockquote|<\/div|<\/pre|<\/strong)><br>/g, '$1>');
+
+  return html;
 }
 
 // Function to show a loading indicator
@@ -112,6 +153,7 @@ function sendMessage() {
       return;
     } else {
       handleDocsRequest(message);
+      return;
     }
 
     // Delay showing the loading indicator by 500ms
