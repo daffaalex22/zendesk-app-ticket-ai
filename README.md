@@ -41,6 +41,7 @@ A small Zendesk app scaffold that includes both a frontend iframe app and backen
 - Tools / Frameworks:
 	- [Zendesk App Framework (ZAF)](https://developer.zendesk.com/apps/docs/apps-v2) — app runs inside Zendesk via an iframe
 	- [Zendesk CLI (`zcli`)](https://developer.zendesk.com/apps/docs/zcli/getting-started) — local development and deployment tools
+ 	- [Zendesk Garden](https://garden.zendesk.com/) — zendesk's official design sytem
 
 ### ▶️ How to run locally (development)
 
