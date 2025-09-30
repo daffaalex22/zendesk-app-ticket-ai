@@ -4,7 +4,6 @@ A small Zendesk app scaffold that includes both a frontend iframe app and backen
 
 ## 📚 Table of Contents
 - [Zendesk App](#zendesk-app)
-  - [Quick overview](#quick-overview)
   - [What this repository contains](#what-this-repository-contains)
   - [Features](#features)
   - [Languages & Frameworks](#languages--frameworks)
@@ -15,12 +14,6 @@ A small Zendesk app scaffold that includes both a frontend iframe app and backen
   - [How to Import Workflows into n8n](#how-to-import-workflows-into-n8n)
 
 ## 🧾 Zendesk App
-
-### 🚀 Quick overview
-
-- Languages: [HTML](https://developer.mozilla.org/en-US/docs/Web/HTML), [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS), [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript), [JSON](https://www.json.org/json-en.html)
-- Frameworks / tools: [Zendesk App Framework (ZAF)](https://developer.zendesk.com/apps/docs/apps-v2), [Zendesk CLI (`zcli`)](https://developer.zendesk.com/apps/docs/zcli/getting-started)
-- Purpose: Simple iframe-based Zendesk app (static assets in `assets/`)
 
 ### 🧾 What this repository contains
 
