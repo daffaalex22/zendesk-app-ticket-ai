@@ -1,4 +1,4 @@
-# App name
+# Zendesk App - Ticket AI Assistant
 
 A small Zendesk app scaffold for quick prototyping and demos. This project shows a minimal Zendesk iframe app using static HTML, CSS and JavaScript and includes translations and static assets.
 
@@ -17,9 +17,9 @@ A small Zendesk app scaffold for quick prototyping and demos. This project shows
 
 ## 🎯 Features
 
-- Minimal static Zendesk iframe app
-- Translation support via `translations/` JSON files
-- Ready for local development with `zcli` and easy deployment
+- Ticket Summarization
+- Draft Automated Ticket Reply
+- Documentation based QnA (RAG)
 
 ## 📦 Languages & Frameworks
 
