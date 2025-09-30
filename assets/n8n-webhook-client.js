@@ -1,8 +1,8 @@
 // n8n-webhook-client.js
 
-const SUMMARY_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/simple-summary";
-const AUTOREPLY_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/ticket-autoreply";
-const DOCS_WEBHOOK_URL = "https://n8n-service-2vj1.onrender.com/webhook/docs-chat";
+const SUMMARY_WEBHOOK_URL = "https://xendit-trial-daffa.up.railway.app/webhook/simple-summary";
+const AUTOREPLY_WEBHOOK_URL = "https://xendit-trial-daffa.up.railway.app/webhook/ticket-autoreply";
+const DOCS_WEBHOOK_URL = "https://xendit-trial-daffa.up.railway.app/webhook/docs-chat";
 
 /**
  * Sends a message to the n8n webhook for summarization
