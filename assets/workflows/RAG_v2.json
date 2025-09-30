@@ -1,0 +1,220 @@
+{
+  "name": "RAG",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "={{ $json.body.message }}",
+        "text": "",
+        "options": {
+          "systemMessage": "=You are a internal AI assistant for Xendit, a payment gateway company, that answers questions using a specific set of documents stored in a Supabase Vector Database. \n\nInstructions:\n1. Always try to retrieve relevant information from the provided Supabase documents before generating an answer.\n2. Only use the content retrieved from the database as the source of truth. If the answer is not found in the documents, politely say: \"I could not find information about that in the provided documentation.\"\n3. Do not make up answers or assume facts outside the provided documents.\n4. Provide concise, clear, and professional responses.\n5. Include the URL of the referenced document where applicable.\n\nContext:\n- User questions will be passed to you dynamically.\n- Supabase will provide retrieved document chunks relevant to the query.\n- You should base your response on these retrieved chunks only."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -1088,
+        0
+      ],
+      "id": "1e075beb-9dfd-47ec-9c0f-7e1219e5fece",
+      "name": "RAG Chatbot",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use the documentation data to provide accurate information to User's question",
+        "tableName": {
+          "__rl": true,
+          "value": "docs",
+          "mode": "list",
+          "cachedResultName": "docs"
+        },
+        "topK": 10,
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        -736,
+        656
+      ],
+      "id": "4e8c1e2f-8536-4e7b-a545-fe98d047a037",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Qeet7Wwl3pgbptEc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.message }}",
+        "options": {
+          "systemMessage": "You are a internal AI assistant for Xendit, a payment gateway company, that answers questions using a specific set of documents stored in a Supabase Vector Database. \n\nInstructions:\n1. Always try to retrieve relevant information from the provided Supabase documents before generating an answer.\n2. Only use the content retrieved from the database as the source of truth. If the answer is not found in the documents, politely say: \"I could not find information about that in the provided documentation.\"\n3. Do not make up answers or assume facts outside the provided documents.\n4. Provide concise, clear, and professional responses.\n5. Include the URL of the referenced document where applicable.\n\nContext:\n- User questions will be passed to you dynamically.\n- Supabase will provide retrieved document chunks relevant to the query.\n- You should base your response on these retrieved chunks only."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -832,
+        432
+      ],
+      "id": "2d1e0df4-bb00-4297-b1df-c3ba2ad30632",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "docs-chat",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1088,
+        432
+      ],
+      "id": "90d52798-705a-48d8-a1ec-0b3939de10af",
+      "name": "Receive Message from Zendesk App",
+      "webhookId": "d325b99c-10f7-4872-9bbf-562c1084b5d0"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -464,
+        432
+      ],
+      "id": "a8304ec1-8260-45d9-81eb-178f949ef341",
+      "name": "Send Respond to Zendesk App"
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-chat-v3.1:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -912,
+        640
+      ],
+      "id": "0b2f6e05-bf3d-4ec9-b99e-bfa700ac3e11",
+      "name": "OpenRouter: Deepseek V3.1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "avXdgOstLhruptN0",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-001"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        864
+      ],
+      "id": "e31b8977-05f4-463f-8eaa-d9e7f3dc2230",
+      "name": "Gemini Embedding 001",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gth0HxtABgaeLSiG",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Receive Message from Zendesk App": [
+      {
+        "json": {
+          "body": {
+            "message": "What is the transaction limit of using Alfamart?"
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Supabase Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send Respond to Zendesk App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive Message from Zendesk App": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Deepseek V3.1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Embedding 001": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0323f77e-38b3-42d8-bc34-f2885830b6cf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a57bcfa8d0ddbd399c239519e907af9ac7cd5bd189656b05d8b11f6232e7456c"
+  },
+  "id": "DEIeId9UVFPfUD6y",
+  "tags": []
+}

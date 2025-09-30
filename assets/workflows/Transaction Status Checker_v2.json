@@ -1,0 +1,733 @@
+{
+  "name": "Transaction Status Checker",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json?.body?.data || $('Receive data from Zendesk')?.item?.json?.body?.data }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an AI assistant integrated in a Xendit customer support workflow. \nYou will always be provided with a short user message (ticket text) that requests a status check for a single payment transaction. The user message will contain three important pieces of data: an identifier, a nominal (amount), and a date/time. Transaction types are one of:\n  - Virtual Account (VA) — identifier label in text: \"VA Number\" or \"VA:\"\n  - E-Wallet — identifier label in text: \"Reference ID\" or \"Reference:\"\n  - QR Code — identifier label in text: \"RRN\" or \"RRN:\"\n\nDatabase mapping:\n  - VA identifier -> column `va_number`\n  - QR identifier -> column `rrn`\n  - E-Wallet identifier -> column `reference_id`\n  - Nominal (number only) -> column `amount`\n  - Date/time for DB query -> column `created_time` (exact format required for query: YYYY-MM-DD HH:MM:SS, e.g., `2025-08-25 16:44:54`)\n\nTask (ordered, mandatory):\n1. Parse the incoming ticket text and extract three fields:\n   - `identifier_type` (one of: \"va_number\", \"reference_id\", \"rrn\")\n   - `identifier_value` (string)\n   - `amount` (integer number only — e.g., `13900`) \n   - `created_time` (normalized for DB query: `YYYY-MM-DD HH:MM:SS`)\n\n   Notes on parsing:\n   - Match identifier labels case-insensitively (e.g., \"VA Number:\", \"Va:\", \"Reference ID:\", \"rrn:\").\n   - Strip currency text and punctuation from nominal (remove \"IDR\", \"Rp\", commas used as thousand separators). Result must be digits only. If decimals, denoted by dots, exist, treat it as is.\n   - Accept common date formats in input (e.g., \"August 25, 2025 at 16:44:40\", \"8/25/2025 16:44:54\", \"25 Aug 2025, 16:44\") and convert to the DB query format `YYYY-MM-DD HH:MM:SS`. If the input date lacks seconds, add `:00`.\n   - If you cannot unambiguously determine which identifier is present, prefer explicit labels (VA / Reference ID / RRN). Do not guess.\n\n2. Validate extracted fields:\n   - If **any** of `identifier_value`, `amount`, or `created_time` is missing or could not be parsed, return an error JSON (see Output format below). Do not attempt a DB query.\n   - If `amount` or `created_time` is present but not in the required DB format, **normalize** it to the required format (`amount` → integer digits + decimal points; `created_time` → `YYYY-MM-DD HH:MM:SS`) before proceeding.\n\n3. Query the connected Supabase Query Tool:\n   - **Do not** finalize the response or attempt to summarize the transaction until AFTER you have called the Supabase Query Tool.\n   - Call the Supabase Query Tool with a single query that includes:\n     - The identifier field (only one of `va_number` OR `reference_id` OR `rrn`) set to `identifier_value`.\n     - `amount` set to the numeric amount (digits only).\n     - `created_time` set to the normalized `YYYY-MM-DD HH:MM:SS` value.\n   - Example query payload structure (adapt to your tool's required shape):\n     {\n       \"va_number\": null,         // fill only the matching identifier field\n       \"reference_id\": \"AXISNETXOV\",\n       \"rrn\": null,\n       \"amount\": 13900,\n       \"created_time\": \"2025-08-25 16:44:40\"\n     }\n\n4. Handle query results:\n   - If the Supabase Query Tool **returns an error**, immediately return an error JSON with `error` = true and `error_message` = the tool's error message.\n   - If the query succeeds but returns **no matching transaction rows**, return an error JSON with `error` = true and `error_message` = \"Transaction not found.\"\n   - If the query succeeds and returns a matching transaction row, extract key fields for the summary: payment method (detected from identifier type), status (e.g., \"Success\", \"Failed\", \"Pending\", as returned by DB), amount, identifier, and created_time (from DB row).\n\n5. Produce the final internal summary string (exact format required):\n   - Format exactly like the example below (pipe-separated):\n     \"Transaction Summary: Payment Method: <Virtual Account|E-Wallet|QR Code> | Status: <Status from DB> | Amount: IDR <amount digits> | Reference: <identifier_value> | Date: <DD Mon YYYY, HH:MM>\"\n   - Date in summary should be human-friendly and formatted as: `DD Mon YYYY, HH:MM` (e.g., `25 Aug 2025, 16:44`) — drop seconds.\n   - Use \"Payment Method\" labels exactly as: `Virtual Account`, `E-Wallet`, or `QR Code`.\n   - Use `Reference:` label for the identifier in the summary (even for VA / RRN) to keep the summary compact, but ensure the identifier value is the one that matches the type.\n\nOutput rules:\n- Return a JSON object only and exactly in this format:\n{\n  \"transaction_status\": \"<transaction status or empty>\",\n  \"text\": \"<transaction summary string or empty>\",\n  \"error\": <true or false>,\n  \"error_message\": \"<string, empty if no error>\"\n}\n\n- Success example:\n{\n  \"transaction_status\": \"FAILED\",\n  \"text\": \"Transaction Summary: Payment Method: E-Wallet | Status: Failed | Amount: IDR 13900 | Reference: AXISNETXOV | Date: 25 Aug 2025, 16:44\",\n  \"error\": false,\n  \"error_message\": \"\"\n}\n\n- Error examples:\n  - Missing input data:\n    {\n      \"transaction_status\": \"\",\n      \"text\": \"\",\n      \"error\": true,\n      \"error_message\": \"Missing identifier, amount, or date in the provided text.\"\n    }\n  - DB query error:\n    {\n      \"transaction_status\": \"\",\n      \"text\": \"\",\n      \"error\": true,\n      \"error_message\": \"<error text returned by Supabase Query Tool>\"\n    }\n  - No matching transaction:\n    {\n      \"transaction_status\": \"\",\n      \"text\": \"\",\n      \"error\": true,\n      \"error_message\": \"Transaction not found.\"\n    }\n\nImportant constraints:\n- DO NOT fabricate transaction statuses or data. Only return the transaction summary when you have successfully retrieved the transaction row from the database.\n- DO NOT answer or finish execution before performing the Supabase query.\n- Be robust to noisy formatting (extra newlines, misspelled labels) but do not guess missing fields.\n\nExamples of user inputs you must support (these are examples — your parsing must be generic):\ni. What is the status of\nthis VA transaction?\n1. VA Number: 3816560468\n2. Nominal: IDR 275,000\n3. Date: August 25, 2024 at 16:44:42\n\nii. What is the status of this eWallet transaction?\n1. Reference ID: AXISNETXOV\n2. Nominal: IDR 13,900\n3. Date: August 25, 2025 at 16:44:40\n\niii.\nWhat is the status of this QR Code transaction?\n1. RRN: TCMZ-85542\n2. Nominal: IDR 152,900\n3. Date: August 25, 2025 at 16:44:54\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        512
+      ],
+      "id": "5ca2fbbc-6601-48e6-867a-9057077cad20",
+      "name": "AI Agent",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1b17498d-2e48-415d-b9c6-eb3d32295ef8",
+              "leftValue": "={{ $json.output.error }}",
+              "rightValue": "false",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        304
+      ],
+      "id": "28bd08bf-6a9a-46b1-ad6a-5cacabbf17eb",
+      "name": "If Transaction Checking Successful"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b575fa88-ca96-41b0-9455-63732a38f7f7",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        144,
+        304
+      ],
+      "id": "eb39a2fa-b29e-459a-908e-5950fe0f685c",
+      "name": "If Manual Querying Successful"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json.body.data\nconst type = $input.first().json.body.type\n\n// Initialize parsed fields\nlet transactionId = null;\nlet nominal = null;\nlet date = null;\n\n// Regex patterns based on type\nif (type === 'VIRTUAL_ACCOUNT') {\n  const vaMatch = input.match(/VA Number:\\s*(\\S+)/i);\n  transactionId = vaMatch ? vaMatch[1].trim() : null;\n} else if (type === 'EWALLET') {\n  const refMatch = input.match(/Reference ID:\\s*(\\S+)/i);\n  transactionId = refMatch ? refMatch[1].trim() : null;\n} else if (type === 'QR_CODE') {\n  const rrnMatch = input.match(/RRN:\\s*(\\S+)/i);\n  transactionId = rrnMatch ? rrnMatch[1].trim() : null;\n}\n\n// Nominal\nconst nominalMatch = input.match(/Nominal:\\s*([A-Z]{3})\\s*([\\d,]+(?:\\.\\d+)?)/i);\nnominal = nominalMatch ? parseFloat(nominalMatch[2].replace(/,/g, '')) : null;\n\n// Date\nconst dateMatch = input.match(/Date:\\s*(.*)/i);\nif (dateMatch) {\n  const rawDate = dateMatch[1].replace(\" at \", \" \"); // normalize \"at\"\n  const parsed = new Date(rawDate);\n\n  if (!isNaN(parsed.getTime())) {\n    const yyyy = parsed.getFullYear();\n    const mm = String(parsed.getMonth() + 1).padStart(2, \"0\");\n    const dd = String(parsed.getDate()).padStart(2, \"0\");\n    const hh = String(parsed.getHours()).padStart(2, \"0\");\n    const min = String(parsed.getMinutes()).padStart(2, \"0\");\n    const ss = String(parsed.getSeconds()).padStart(2, \"0\");\n    date = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;\n  } else {\n    date = null; // fallback if parsing fails\n  }\n}\n\nreturn {\n  json: {\n    type,\n    transaction_id: transactionId,\n    amount: nominal,\n    created_time: date,\n    missingFields: [\n      !transactionId ? \"Transaction ID\" : null,\n      !nominal ? \"Nominal\" : null,\n      !date ? \"Date\" : null\n    ].filter(Boolean)\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -528,
+        304
+      ],
+      "id": "869eef3c-a1cb-4d18-ad78-9ca0b77d8711",
+      "name": "Extract data with JavaScript",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "transaction-status-checking",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -752,
+        304
+      ],
+      "id": "a4297101-e4a2-4241-8808-e3b46119c464",
+      "name": "Receive data from Zendesk",
+      "webhookId": "806de85e-666c-40dc-a706-3a25ec83a3de",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "transactions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "va_number",
+              "keyValue": "={{ $json.transaction_id }}"
+            },
+            {
+              "keyName": "amount",
+              "keyValue": "={{ $json.amount }}"
+            },
+            {
+              "keyName": "created_time",
+              "keyValue": "={{ $json.created_time }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        112
+      ],
+      "id": "38b04630-40ff-498f-bb40-44af865e9a5c",
+      "name": "Get a VA tx from DB",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "Qeet7Wwl3pgbptEc",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "transactions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "reference_id",
+              "keyValue": "={{ $json.transaction_id }}"
+            },
+            {
+              "keyName": "amount",
+              "keyValue": "={{ $json.amount }}"
+            },
+            {
+              "keyName": "created_time",
+              "keyValue": "={{ $json.created_time }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        304
+      ],
+      "id": "a94aa7df-ed86-4f14-b26e-deb74da0f95a",
+      "name": "Get a eWallet tx from DB",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "Qeet7Wwl3pgbptEc",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "transactions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "rrn",
+              "keyValue": "={{ $('Extract data with JavaScript').item.json.transaction_id }}"
+            },
+            {
+              "keyName": "amount",
+              "keyValue": "={{ $('Extract data with JavaScript').item.json.amount }}"
+            },
+            {
+              "keyName": "created_time",
+              "keyValue": "={{ $('Extract data with JavaScript').item.json.created_time }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        496
+      ],
+      "id": "1a7d1f96-42e5-46d8-a8bd-37f472788132",
+      "name": "Get a QR tx from DB",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "Qeet7Wwl3pgbptEc",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Get a transaction row from database",
+        "operation": "get",
+        "tableId": "transactions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "={{ $('Receive data from Zendesk').item.json.body.type === \"VIRTUAL_ACCOUNT\" ? \"va_number\" : $('Receive data from Zendesk').item.json.body.type === \"EWALLET\" ? \"reference_id\" : \"rrn\"  }}",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Value', ``, 'string') }}"
+            },
+            {
+              "keyName": "amount",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions1_Value', ``, 'string') }}"
+            },
+            {
+              "keyName": "created_time",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions2_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        448,
+        736
+      ],
+      "id": "055793f6-c998-4791-afce-b059b8d1297e",
+      "name": "Get tx data from Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Qeet7Wwl3pgbptEc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-chat-v3.1",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        368,
+        224
+      ],
+      "id": "ed0426a8-3626-4d48-a3b4-c287bafca91e",
+      "name": "OpenRouter: Deepseek V3.1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "avXdgOstLhruptN0",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "id": "={{ $('Receive data from Zendesk').item.json.body.ticketId }}",
+        "updateFields": {
+          "publicReply": "=Dear Team, \n\nGreetings from Xendit! This is Luna who will help you today. \n\nThank you for waiting for our updates, in this email we would like to inform you that the transaction with details below : \n\n{{ $json.output.text || $json.text }}\n\n\nHope your issue is resolved, feel free to let us know if you have any other questions, we will be very happy to help. \n\nRegards"
+        }
+      },
+      "type": "n8n-nodes-base.zendesk",
+      "typeVersion": 1,
+      "position": [
+        944,
+        208
+      ],
+      "id": "f0a176e9-ecbc-4987-b3ea-38d65f011409",
+      "name": "Send Public Reply",
+      "credentials": {
+        "zendeskApi": {
+          "id": "iF7kZrYpEHJV2uaj",
+          "name": "Zendesk account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "id": "={{ $('Receive data from Zendesk').item.json.body.ticketId }}",
+        "updateFields": {
+          "internalNote": "={{ $json?.output?.error_message || $json?.error || $json?.text }}"
+        }
+      },
+      "type": "n8n-nodes-base.zendesk",
+      "typeVersion": 1,
+      "position": [
+        944,
+        400
+      ],
+      "id": "7bbc66f0-16cb-45a2-a61e-13caf8474b56",
+      "name": "Send Internal Note",
+      "credentials": {
+        "zendeskApi": {
+          "id": "iF7kZrYpEHJV2uaj",
+          "name": "Zendesk account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n    \"transaction_status\": \"<SUCCESS or FAILED>\",\n\t\"text\": \"Transaction Summary: Payment Method: E-Wallet | Status: Failed | Amount: IDR 13900 | Reference: AXISNETXOV | Date: 25 Aug 2025, 16:44\",\n\t\"error\": false,\n    \"error_message\": \"<string, empty if no error>\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        224
+      ],
+      "id": "469c76bb-d951-4278-a0ea-fb687016d71f",
+      "name": "AI Output Parser"
+    },
+    {
+      "parameters": {
+        "content": "# Manual Data Extraction and Querying\n\n## tx = transaction",
+        "height": 608,
+        "width": 704
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -576,
+        48
+      ],
+      "typeVersion": 1,
+      "id": "99a39d5a-9627-431e-9e35-ad4f2a26c16f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n## AI Based Data Extraction + Querying",
+        "height": 432,
+        "width": 496,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        224,
+        496
+      ],
+      "typeVersion": 1,
+      "id": "63bf5911-3d1d-45db-b50e-f72391565310",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Please create summary for this transaction data:\n{{ $json.toJsonString() }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are a financial assistant that summarizes transaction details for customers. \n\nCASE 1 (Transaction data exists):\nRespond strictly in this format:\nTransaction Summary: \nPayment Method: {{ $json.payment_method }} | \nStatus: {{ $json.status }} | \nAmount: {{ $json.currency }} {{ $json.amount }} | \nReference: {{ $json?.va_number || $json?.reference_id || $json.rrn }} | \nDate: {{ $('Extract data with JavaScript')?.item?.json?.created_time || $json.created_time }}\n\nCASE 2 (Transaction data missing, empty, or invalid):\nRespond strictly in this format:\nTransaction Summary: No transaction data available or an error occurred"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        368,
+        0
+      ],
+      "id": "77e409b6-7160-4de3-8746-17dd8a7cdb2a",
+      "name": "AI - Crafting Response"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "VIRTUAL_ACCOUNT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "ddff32ed-a96a-4678-b2f9-f5fd4db1f23e"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a590afa7-3dd8-45ec-95bf-7192309d423f",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "EWALLET",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "072b6654-6aa5-4701-bd90-922fea6adfe9",
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "QR_CODE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -304,
+        288
+      ],
+      "id": "17156034-40c3-41a6-bfb7-1157d7725d7e",
+      "name": "Switch based on tx type",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {
+    "Receive data from Zendesk": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-service-2vj1.onrender.com",
+            "user-agent": "Zendesk Webhook",
+            "content-length": "246",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1",
+            "cf-connecting-ip": "216.198.34.107",
+            "cf-ipcountry": "JP",
+            "cf-ray": "98498a693b8ed4b6-PDX",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "content-type": "application/json; charset=utf-8",
+            "render-proxy-ttl": "4",
+            "rndr-id": "f149784d-2485-4cd4",
+            "traceparent": "00-68d50d3e000000003e75531b97d94d06-3e75531b97d94d06-00",
+            "tracestate": "dd=s:-1;p:3e75531b97d94d06",
+            "true-client-ip": "216.198.34.107",
+            "x-forwarded-for": "216.198.34.107, 104.23.160.110, 10.204.110.197",
+            "x-forwarded-proto": "https",
+            "x-request-id": "1b1ca749-5498-4c9d-9555-3744d74a723a",
+            "x-request-start": "1758793023011778",
+            "x-zendesk-account-id": "11008455",
+            "x-zendesk-webhook-id": "01K5YFDPFC7VY71DMYAHQ3Y40M",
+            "x-zendesk-webhook-invocation-id": "01K603QFAK5J3Y5MW7N8PE3WSY",
+            "x-zendesk-webhook-signature": "vi65Bu+HotVst5oPHGjfQp3pnv8ovLNqbfy8ZH5r/fA=",
+            "x-zendesk-webhook-signature-timestamp": "2025-09-25T09:37:02Z"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "ticketId": 19498,
+            "type": "EWALLET",
+            "data": "----------------------------------------------\n\nWhat is the status of this eWallet transaction?\n1. Reference ID: AXISNETXOV\n2. Nominal: IDR 13,900\n3. Date: August 25, 2025 at 16:44:40"
+          },
+          "webhookUrl": "https://n8n-service-2vj1.onrender.com/webhook/transaction-status-checking",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If Transaction Checking Successful",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Transaction Checking Successful": {
+      "main": [
+        [
+          {
+            "node": "Send Public Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Internal Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Manual Querying Successful": {
+      "main": [
+        [
+          {
+            "node": "AI - Crafting Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract data with JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Switch based on tx type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive data from Zendesk": {
+      "main": [
+        [
+          {
+            "node": "Extract data with JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a VA tx from DB": {
+      "main": [
+        [
+          {
+            "node": "If Manual Querying Successful",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a eWallet tx from DB": {
+      "main": [
+        [
+          {
+            "node": "If Manual Querying Successful",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a QR tx from DB": {
+      "main": [
+        [
+          {
+            "node": "If Manual Querying Successful",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get tx data from Supabase": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Deepseek V3.1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI - Crafting Response",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          },
+          {
+            "node": "AI - Crafting Response",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI - Crafting Response": {
+      "main": [
+        [
+          {
+            "node": "If Transaction Checking Successful",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch based on tx type": {
+      "main": [
+        [
+          {
+            "node": "Get a VA tx from DB",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get a eWallet tx from DB",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get a QR tx from DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b3cb2bb4-abed-4f2a-9576-77f60049838b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a57bcfa8d0ddbd399c239519e907af9ac7cd5bd189656b05d8b11f6232e7456c"
+  },
+  "id": "mUJh956xA7KI8HeZ",
+  "tags": []
+}

@@ -1,0 +1,267 @@
+{
+  "name": "Summary & Drafter",
+  "nodes": [
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"output\": \"The summary is...\",\n    \"error\": false,\n    \"error_message\": \"\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        496,
+        224
+      ],
+      "id": "418d974a-65a2-4936-b630-911124c06075",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Use the HTTP Request Tool to retrieve ticket comments data and summarize it for me.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an AI assistant integrated in a customer support workflow for Xendit, a Payment Gateway company. \nYou will always be provided with Zendesk ticket comments retrieved by an HTTP Request node. \nYour task is to generate a concise, structured summary of the ticket conversation so that a Xendit customer support agent can quickly understand the situation and know what action to take next. \nThis summary is internal-only and will not be shared directly with the customer.\n\nContext about Xendit:\n- Xendit helps businesses process payments such as e-wallets, virtual accounts, cards, and disbursements.  \n- Customers may report issues such as failed transactions, delays in settlement, refunds, duplicate charges, chargebacks, or integration errors.  \n- Internal notes or system updates may appear in the comments; include them in the \"Context\" section if relevant.  \n- The summary should highlight key details the CS agent needs (e.g., Reference ID, payment method, date, status).  \n- The goal is to save the agent time by showing them the Issue, Context, and Next Step(s) at a glance.  \n\nDefinitions for the summary:\n- Issue: What’s wrong, what the customer is asking, or the main problem being reported.\n- Context: What’s been tried so far, what is already known, and any relevant internal notes or status updates.\n- Next Step(s): What the CS agent should focus on doing next (e.g., clarify with customer, escalate to payments team, verify a transaction in the dashboard).\n\nRules:\n- If ticket comments are available:\n  - Read all comments in chronological order.\n  - Summarize into the format:\n    Issue: <one to two sentences>\n    Context: <one to three sentences>\n    Next Step(s): <clear recommended action(s)>\n  - Keep the summary concise (3–6 sentences total).\n  - Avoid copying long verbatim text; rephrase in your own words.\n- If no ticket comments are available, or if retrieving the comments failed:\n  - Do not fabricate a summary.\n  - Instead, set the output to an empty string, set \"error\" to true, and set \"error_message\" to \"No ticket comments available or failed to retrieve data.\"\n\nOutput format:\nReturn a valid JSON object only in this format:\n{\n  \"output\": \"Issue: ...\\nContext: ...\\nNext Step(s): ...\",\n  \"error\": <true or false>,\n  \"error_message\": \"<string, empty if no error>\"\n}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        272,
+        0
+      ],
+      "id": "9af6c08c-1a22-4cd2-867f-3921ce5a24d7",
+      "name": "Summarizer"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Use the HTTP Request Tool to retrieve ticket comments data and draft a customer-facing reply for me.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an AI assistant integrated in a customer support workflow for Xendit, a Payment Gateway company. \nYou will always be provided with Zendesk ticket comments retrieved by an HTTP Request node. \nYour task is to generate a professional, customer-facing draft reply based on the conversation. \nThis reply will later be reviewed and possibly edited by a human support agent before being sent.\n\nContext about Xendit:\n- Xendit helps businesses process payments such as e-wallets, virtual accounts, cards, and disbursements.  \n- Customers may report issues such as failed transactions, delays, settlement inquiries, refunds, duplicate charges, or integration problems.  \n- Always acknowledge the customer’s concern with empathy and professionalism.  \n- Provide reassurance that Xendit is actively assisting and investigating the issue.  \n- When details are missing, politely ask the customer for the specific information needed (e.g., Reference ID, payment method, transaction date).  \n- If appropriate, guide the customer on the next step (e.g., waiting time, providing documents, escalation to relevant team).  \n\nGuidelines for drafting the reply:\n- Be polite, empathetic, and professional.\n- Directly address the customer’s main concern or question.\n- If information is missing, request clarification politely (e.g., “Could you please provide…”).\n- If an issue is ongoing, acknowledge it and explain the next steps clearly.\n- Keep the response concise (4–8 sentences).\n- Do not include internal notes, system logs, or private information.\n- Use natural, conversational tone while staying professional and aligned with Xendit’s helpful brand voice.\n\nRules:\n- If ticket comments are available:\n  - Read all comments in chronological order.\n  - Generate a clear and professional customer reply draft as if you are a Xendit CS Agent.\n- If no ticket comments are available, or if retrieving the comments failed:\n  - Do not fabricate a reply.\n  - Instead, set the output to an empty string, set \"error\" to true, and set \"error_message\" to \"No ticket comments available or failed to retrieve data.\"\n\nOutput format:\nReturn a valid JSON object only in this format:\n{\n  \"output\": \"<draft reply text>\",\n  \"error\": <true or false>,\n  \"error_message\": \"<string, empty if no error>\"\n}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        272,
+        400
+      ],
+      "id": "45d62049-169d-472f-85e2-9028fca6d763",
+      "name": "Autoreplier"
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-chat-v3.1:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        192,
+        224
+      ],
+      "id": "d3012d5b-8618-46c6-a783-825d3f924867",
+      "name": "OpenRouter: Deepseek V3.1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "avXdgOstLhruptN0",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Makes an HTTP request to Get Ticket Conversation/Comments data from Zendesk and returns the response data",
+        "url": "=https://xenditsupport1623035355.zendesk.com/api/v2/tickets/{{ $json.body.ticketId }}/comments.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "zendeskApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        336,
+        224
+      ],
+      "id": "5eb2295e-42ed-4cf9-b997-594daabf9577",
+      "name": "Get Ticket's Convo",
+      "credentials": {
+        "zendeskApi": {
+          "id": "iF7kZrYpEHJV2uaj",
+          "name": "Zendesk account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        672,
+        112
+      ],
+      "id": "81a8c7de-6b92-4820-8607-7153938e71f8",
+      "name": "Send data to Zendesk App"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        672,
+        400
+      ],
+      "id": "0fe8399a-d67e-4e90-bf84-f8527df1e41b",
+      "name": "Send data to Zendesk App1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ticket-autoreply",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -16,
+        400
+      ],
+      "id": "a8d62caf-53eb-4a46-955d-b622718c7d61",
+      "name": "Receive ticket ID from Zendesk App",
+      "webhookId": "b7b7b302-9d34-4b18-8ac4-499cd2759e6a"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "simple-summary",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -16,
+        112
+      ],
+      "id": "5f86d8a3-0da8-4c1e-8ea2-952647e182d7",
+      "name": "Receive ticket ID from Zendesk App1",
+      "webhookId": "7d982144-7018-4a6e-9a59-4f62608bbf46"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Summarizer",
+            "type": "ai_outputParser",
+            "index": 0
+          },
+          {
+            "node": "Autoreplier",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarizer": {
+      "main": [
+        [
+          {
+            "node": "Send data to Zendesk App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Autoreplier": {
+      "main": [
+        [
+          {
+            "node": "Send data to Zendesk App1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter: Deepseek V3.1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarizer",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Autoreplier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Ticket's Convo": {
+      "ai_tool": [
+        [
+          {
+            "node": "Summarizer",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Autoreplier",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive ticket ID from Zendesk App": {
+      "main": [
+        [
+          {
+            "node": "Autoreplier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive ticket ID from Zendesk App1": {
+      "main": [
+        [
+          {
+            "node": "Summarizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ce1c27b8-ee47-4ddd-879a-6bb9c2d9fbc5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a57bcfa8d0ddbd399c239519e907af9ac7cd5bd189656b05d8b11f6232e7456c"
+  },
+  "id": "TxJq6cpNgHdQTPFf",
+  "tags": []
+}

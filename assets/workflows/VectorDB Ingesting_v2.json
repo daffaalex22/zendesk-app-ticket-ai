@@ -1,0 +1,229 @@
+{
+  "name": "VectorDB Ingesting",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        128,
+        0
+      ],
+      "id": "c16cd5bc-0b2d-425f-8a6e-4b4033be82b7",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://api.apify.com/v2/datasets/RDipetX9CySyxvVCg/items",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "url,metadata,markdown"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        368,
+        0
+      ],
+      "id": "8059a7ab-3e9c-4a06-b049-ee8d5055da51",
+      "name": "Get Scraped Articles from Apify"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "docs",
+          "mode": "list",
+          "cachedResultName": "docs"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        16
+      ],
+      "id": "5f6bf717-07c1-44cf-b36d-c0b72681e248",
+      "name": "Insert to Supabase Vector",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Qeet7Wwl3pgbptEc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1184,
+        16
+      ],
+      "id": "62c503e6-a07e-4577-bb44-717d636e4933",
+      "name": "Wait: Adjust to Rate Limits",
+      "webhookId": "e27d1746-a58b-49a7-b964-65f2e9414e85"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-001"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        768,
+        336
+      ],
+      "id": "3950847b-e674-49f8-88f6-bf986a77cbc1",
+      "name": "Gemini Embedding 001",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gth0HxtABgaeLSiG",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        608,
+        0
+      ],
+      "id": "0d89c475-8537-46a8-9423-affcf76c0d41",
+      "name": "Loop Over Articles"
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "=Title: {{ $json.metadata.title }}\nURL: {{ $json.url }}\n\n{{ $json.markdown }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "url",
+                "value": "={{ $json.url }}"
+              },
+              {
+                "name": "title",
+                "value": "={{ $json.metadata.title }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        352
+      ],
+      "id": "ad973f82-96c1-4420-84ff-c2ec547bd07e",
+      "name": "Default Data Loader (+Chunking)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get Scraped Articles from Apify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Scraped Articles from Apify": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert to Supabase Vector": {
+      "main": [
+        [
+          {
+            "node": "Wait: Adjust to Rate Limits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait: Adjust to Rate Limits": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Embedding 001": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Insert to Supabase Vector",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Articles": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Insert to Supabase Vector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader (+Chunking)": {
+      "ai_document": [
+        [
+          {
+            "node": "Insert to Supabase Vector",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c8e667d2-b988-424f-9208-6dbee4cb5ac7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a57bcfa8d0ddbd399c239519e907af9ac7cd5bd189656b05d8b11f6232e7456c"
+  },
+  "id": "QgTRhqwtOCM6w8rx",
+  "tags": []
+}
