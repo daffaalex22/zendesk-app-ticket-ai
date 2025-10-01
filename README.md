@@ -4,23 +4,15 @@ A small Zendesk app scaffold that includes both a frontend iframe app and backen
 
 ## 📚 Table of Contents
 - [Zendesk App](#zendesk-app)
-  - [What this repository contains](#what-this-repository-contains)
   - [Features](#features)
   - [Languages & Frameworks](#languages--frameworks)
-  - [How to run locally (development)](#how-to-run-locally-development)
   - [Main Files](#main-files)
+  - [How to run locally (development)](#how-to-run-locally-development)
 - [n8n Automations](#n8n-automations)
   - [Included Workflows](#included-workflows)
   - [How to Import Workflows into n8n](#how-to-import-workflows-into-n8n)
 
 ## 🧾 Zendesk App
-
-### 🧾 What this repository contains
-
-- `manifest.json` — Zendesk app manifest and metadata
-- `assets/` — HTML, JS, CSS and images used by the iframe
-- `zcli.apps.config.json` — zcli configuration used for deploy/dev
-- `README.md` — this file
 
 ### 🎯 Features
 
@@ -35,6 +27,18 @@ A small Zendesk app scaffold that includes both a frontend iframe app and backen
 	- [Zendesk App Framework (ZAF)](https://developer.zendesk.com/apps/docs/apps-v2) — app runs inside Zendesk via an iframe
 	- [Zendesk CLI (`zcli`)](https://developer.zendesk.com/apps/docs/zcli/getting-started) — local development and deployment tools
  	- [Zendesk Garden](https://garden.zendesk.com/) — zendesk's official design sytem
+ 
+### 🔧 Main Files
+
+- [`assets/iframe.html`](assets/iframe.html) — main iframe HTML the app loads
+- [`assets/script.js`](assets/script.js) — app JavaScript logic
+- [`assets/n8n-webhook-client.js`](assets/n8n-webhook-client.js) — n8n webhook client functions
+- [`assets/styles.css`](assets/styles.css) — app styling
+- [`assets/forms.css`](assets/forms.css) — Zendesk Garden form components
+- [`assets/buttons.css`](assets/buttons.css) — Zendesk Garden button components
+- `translations/en.json` — English translations
+- `manifest.json` — app metadata and requirements
+- [`assets/workflows`](assets/workflows) - n8n automation workflows that used on the backend
 
 ### ▶️ How to run locally (development)
 
@@ -53,7 +57,7 @@ npm install -g @zendesk/zcli
 Serve the app locally (from the repository root):
 
 ```powershell
-cd d:\Programming\zendesk-basic-app\hello-world
+cd YOURPATH/zendesk-app-ticket-ai
 zcli apps:server
 ```
 
@@ -66,17 +70,6 @@ zcli apps:deploy
 ```
 
 See `zcli.apps.config.json` for environment-specific settings used during deploy.
-
-### 🔧 Main Files
-
-- [`assets/iframe.html`](assets/iframe.html) — main iframe HTML the app loads
-- [`assets/script.js`](assets/script.js) — app JavaScript logic
-- [`assets/n8n-webhook-client.js`](assets/n8n-webhook-client.js) — n8n webhook client functions
-- [`assets/styles.css`](assets/styles.css) — app styling
-- [`assets/forms.css`](assets/forms.css) — Zendesk Garden form components
-- [`assets/buttons.css`](assets/buttons.css) — Zendesk Garden button components
-- `translations/en.json` — English translations
-- `manifest.json` — app metadata and requirements
 
 ## ⚙️ n8n Automations
 
